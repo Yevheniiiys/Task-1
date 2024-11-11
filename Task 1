@@ -1,0 +1,234 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+public class Товар
+{
+    public string Назва { get; set; }
+    public decimal Ціна { get; set; }
+    public string Категорія { get; set; }
+    public double Рейтинг { get; set; }
+
+    public Товар(string назва, decimal ціна, string категорія, double рейтинг)
+    {
+        Назва = назва;
+        Ціна = ціна;
+        Категорія = категорія;
+        Рейтинг = рейтинг;
+    }
+
+    public override string ToString()
+    {
+        return Назва + " - " + Ціна + " грн, Рейтинг: " + Рейтинг;
+    }
+}
+
+public class Замовлення
+{
+    public List<Товар> Товари { get; set; }
+    public int Кількість { get; set; }
+    public decimal ЗагальнаВартість { get; set; }
+    public string Статус { get; set; }
+
+    public Замовлення(List<Товар> товари, int кількість, string статус)
+    {
+        Товари = товари;
+        Кількість = кількість;
+        ЗагальнаВартість = Товари.Sum(t => t.Ціна) * кількість;
+        Статус = статус;
+    }
+
+    public override string ToString()
+    {
+        return "Замовлення: " + Товари.Count + " товарів, Загальна вартість: " + ЗагальнаВартість + " грн, Статус: " + Статус;
+    }
+}
+
+public interface ISearchable
+{
+    List<Товар> ПошукТоварів(string категорія = null, decimal? мінЦіна = null, decimal? максЦіна = null, double? мінРейтинг = null);
+}
+
+public class Магазин : ISearchable
+{
+    public List<Товар> Товари { get; set; }
+    public List<Замовлення> Замовлення { get; set; }
+
+    public Магазин()
+    {
+        Товари = new List<Товар>();
+        Замовлення = new List<Замовлення>();
+    }
+
+    public List<Товар> ПошукТоварів(string категорія = null, decimal? мінЦіна = null, decimal? максЦіна = null, double? мінРейтинг = null)
+    {
+        return Товари.Where(товар =>
+            (категорія == null || товар.Категорія == категорія) &&
+            (!мінЦіна.HasValue || товар.Ціна >= мінЦіна) &&
+            (!максЦіна.HasValue || товар.Ціна <= максЦіна) &&
+            (!мінРейтинг.HasValue || товар.Рейтинг >= мінРейтинг)
+        ).ToList();
+    }
+
+    public void ДодатиТовар(Товар товар)
+    {
+        Товари.Add(товар);
+    }
+
+    public void ДодатиЗамовлення(Замовлення замовлення)
+    {
+        Замовлення.Add(замовлення);
+    }
+
+    public void ПоказатиТовари()
+    {
+        if (Товари.Count == 0)
+        {
+            Console.WriteLine("Товари не додані.");
+            return;
+        }
+
+        foreach (var товар in Товари)
+        {
+            Console.WriteLine(товар);
+        }
+    }
+
+    public void ПоказатиЗамовлення()
+    {
+        if (Замовлення.Count == 0)
+        {
+            Console.WriteLine("Немає замовлень.");
+            return;
+        }
+
+        foreach (var замовлення in Замовлення)
+        {
+            Console.WriteLine(замовлення);
+        }
+    }
+}
+
+public class Program
+{
+    public static void Main()
+    {
+        Магазин магазин = new Магазин();
+
+        while (true)
+        {
+            Console.WriteLine("\nМеню:");
+            Console.WriteLine("1. Додати товар");
+            Console.WriteLine("2. Показати всі товари");
+            Console.WriteLine("3. Пошук товарів");
+            Console.WriteLine("4. Створити замовлення");
+            Console.WriteLine("5. Показати замовлення");
+            Console.WriteLine("6. Вихід");
+
+            Console.Write("\nВиберіть опцію: ");
+            int вибір = int.Parse(Console.ReadLine());
+
+            switch (вибір)
+            {
+                case 1:
+                    ДодатиТовар(магазин);
+                    break;
+                case 2:
+                    магазин.ПоказатиТовари();
+                    break;
+                case 3:
+                    ПошукТоварів(магазин);
+                    break;
+                case 4:
+                    СтворитиЗамовлення(магазин);
+                    break;
+                case 5:
+                    магазин.ПоказатиЗамовлення();
+                    break;
+                case 6:
+                    return;
+                default:
+                    Console.WriteLine("Невірний вибір. Спробуйте ще раз.");
+                    break;
+            }
+        }
+    }
+
+    private static void ДодатиТовар(Магазин магазин)
+    {
+        Console.Write("\nВведіть назву товару: ");
+        string назва = Console.ReadLine();
+
+        Console.Write("Введіть ціну товару: ");
+        decimal ціна = decimal.Parse(Console.ReadLine());
+
+        Console.Write("Введіть категорію товару: ");
+        string категорія = Console.ReadLine();
+
+        Console.Write("Введіть рейтинг товару (0-5): ");
+        double рейтинг = double.Parse(Console.ReadLine());
+
+        Товар новийТовар = new Товар(назва, ціна, категорія, рейтинг);
+        магазин.ДодатиТовар(новийТовар);
+
+        Console.WriteLine("Товар успішно додано!");
+    }
+
+    private static void ПошукТоварів(Магазин магазин)
+    {
+        Console.WriteLine("\nПошук товарів:");
+
+        Console.Write("Введіть категорію (або залиште порожнім для всіх): ");
+        string категорія = Console.ReadLine();
+
+        Console.Write("Введіть мінімальну ціну (або залиште порожнім): ");
+        decimal? мінЦіна = string.IsNullOrEmpty(Console.ReadLine()) ? (decimal?)null : decimal.Parse(Console.ReadLine());
+
+        Console.Write("Введіть максимальну ціну (або залиште порожнім): ");
+        decimal? максЦіна = string.IsNullOrEmpty(Console.ReadLine()) ? (decimal?)null : decimal.Parse(Console.ReadLine());
+
+        Console.Write("Введіть мінімальний рейтинг (0-5, або залиште порожнім): ");
+        double? мінРейтинг = string.IsNullOrEmpty(Console.ReadLine()) ? (double?)null : double.Parse(Console.ReadLine());
+
+        var знайденіТовари = магазин.ПошукТоварів(категорія, мінЦіна, максЦіна, мінРейтинг);
+
+        if (знайденіТовари.Any())
+        {
+            Console.WriteLine("\nЗнайдені товари:");
+            foreach (var товар in знайденіТовари)
+            {
+                Console.WriteLine(товар);
+            }
+        }
+        else
+        {
+            Console.WriteLine("Товари не знайдено.");
+        }
+    }
+
+    private static void СтворитиЗамовлення(Магазин магазин)
+    {
+        Console.WriteLine("\nСтворення замовлення:");
+
+        Console.Write("Введіть кількість товарів для замовлення: ");
+        int кількість = int.Parse(Console.ReadLine());
+
+        магазин.ПоказатиТовари();
+
+        Console.Write("\nВиберіть товар (введіть номер): ");
+        int товарНомер = int.Parse(Console.ReadLine());
+
+        if (товарНомер < 1 || товарНомер > магазин.Товари.Count)
+        {
+            Console.WriteLine("Невірний номер товару.");
+            return;
+        }
+
+        var товарДляЗамовлення = магазин.Товари[товарНомер - 1];
+        var замовлення = new Замовлення(new List<Товар> { товарДляЗамовлення }, кількість, "Очікує на оплату");
+
+        магазин.ДодатиЗамовлення(замовлення);
+
+        Console.WriteLine("Замовлення успішно створене!");
+    }
+}
